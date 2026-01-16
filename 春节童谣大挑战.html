@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>春节童谣大挑战</title>
+    <style>
+        :root {
+            --china-red: #d32f2f;
+            --gold: #ffd700;
+        }
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #fff5f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+        h1 { color: var(--china-red); text-shadow: 2px 2px var(--gold); }
+        #game-container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border: 5px solid var(--china-red);
+            border-radius: 20px;
+            padding: 20px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .instruction { font-size: 1.2rem; margin-bottom: 20px; color: #555; }
+        .rhyme-box {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .item {
+            padding: 15px;
+            background: #fff0f0;
+            border: 2px solid #ffcccb;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s;
+            font-size: 1.1rem;
+        }
+        .item:active { transform: scale(0.95); }
+        .selected { background: var(--gold) !important; border-color: orange !important; }
+        .correct { background: #c8e6c9 !important; border-color: #4caf50 !important; visibility: hidden; }
+        
+        #reward-screen {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            color: var(--gold);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        .firework { font-size: 50px; animation: bounce 1s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        button {
+            padding: 10px 30px;
+            font-size: 1.2rem;
+            background: var(--china-red);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🏮 春节童谣闯关 🏮</h1>
+    
+    <div id="game-container">
+        <div id="level-info"><h3>第一关：日期配配对</h3></div>
+        <p class="instruction">请先点击“时间”，再点击对应的“习俗”吧！</p>
+        <div id="game-board" class="rhyme-box"></div>
+        <div id="msg"></div>
+    </div>
+
+    <div id="reward-screen">
+        <div class="firework">🎆 🎇 🧧 🎇 🎆</div>
+        <h2>恭喜你！背诵大成功！</h2>
+        <p>你已经记住了所有的春节习俗！</p>
+        <div style="font-size: 1.5rem; margin: 20px;">领取奖励：一颗大糖瓜！🍬</div>
+        <button onclick="location.reload()">再玩一次</button>
+    </div>
+
+    <script>
+        const rhymeData = [
+            { date: "腊八", action: "喝腊八粥" },
+            { date: "二十三", action: "糖瓜粘" },
+            { date: "二十四", action: "扫房子" },
+            { date: "二十五", action: "磨豆腐" },
+            { date: "二十六", action: "去买肉" },
+            { date: "二十七", action: "宰公鸡" },
+            { date: "二十八", action: "把面发" },
+            { date: "二十九", action: "蒸馒头" },
+            { date: "三十晚上", action: "熬一宿" },
+            { date: "初一初二", action: "满街走" }
+        ];
+
+        let selectedDate = null;
+        let matches = 0;
+
+        function initGame() {
+            const board = document.getElementById('game-board');
+            board.innerHTML = '';
+            
+            // 混合日期和动作
+            const dates = rhymeData.map(d => ({ text: d.date, type: 'date', id: d.date }));
+            const actions = rhymeData.map(d => ({ text: d.action, type: 'action', id: d.date }));
+            
+            const allItems = [...dates, ...actions].sort(() => Math.random() - 0.5);
+
+            allItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerText = item.text;
+                div.onclick = () => handleSelect(item, div);
+                board.appendChild(div);
+            });
+        }
+
+        function handleSelect(item, element) {
+            if (element.classList.contains('correct')) return;
+
+            if (!selectedDate && item.type === 'date') {
+                selectedDate = { item, element };
+                element.classList.add('selected');
+            } else if (selectedDate && item.type === 'action') {
+                if (selectedDate.item.id === item.id) {
+                    // 匹配成功
+                    element.classList.add('correct');
+                    selectedDate.element.classList.add('correct');
+                    matches++;
+                    checkWin();
+                } else {
+                    // 匹配失败
+                    selectedDate.element.classList.remove('selected');
+                }
+                selectedDate = null;
+            } else {
+                // 重新选择日期
+                if (selectedDate) selectedDate.element.classList.remove('selected');
+                if (item.type === 'date') {
+                    selectedDate = { item, element };
+                    element.classList.add('selected');
+                } else {
+                    selectedDate = null;
+                }
+            }
+        }
+
+        function checkWin() {
+            if (matches === rhymeData.length) {
+                document.getElementById('reward-screen').style.display = 'flex';
+                // 播放烟花音效（如有需要可添加）
+            }
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
